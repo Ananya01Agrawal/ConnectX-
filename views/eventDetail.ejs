@@ -1,0 +1,193 @@
+<%- include ("includes/header") %>
+
+<section>
+    <div class="gap gray-bg">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="row" id="page-contents">
+
+                        <div class="col-md-3">
+                            <%- include ("includes/left-sidebar") %>
+                        </div>
+
+                        <div class="col-md-8">
+                            <div class="central-meta">
+                                <div class="editing-info">
+
+                                    <div id="event-detail"></div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    const isEventDetailPage = true
+
+    function notGoingToEvent() {
+        const button = event.target
+        button.setAttribute("disabled", "disabled")
+
+        const ajax = new XMLHttpRequest()
+        ajax.open("POST", "/notGoingToEvent", true)
+
+        ajax.onreadystatechange = function() {
+            if (this.readyState == 4) {
+                if (this.status == 200) {
+                    button.removeAttribute("disabled")
+
+                    const response = JSON.parse(this.responseText)
+                    // console.log(response)
+                    if (response.status == "error") {
+                        swal("Error", response.message, "error")
+                    } else {
+                        let peopleGoing = parseInt(document.getElementById("people-going").innerHTML)
+                        peopleGoing--
+                        document.getElementById("people-going").innerHTML = peopleGoing
+                        // button.remove()
+
+                        document.getElementById("you-are-going").innerHTML = "You are not going to this event."
+                    }
+                }
+
+                if (this.status == 500) {
+                    console.log(this.responseText)
+                }
+            }
+        }
+
+        const formData = new FormData()
+        formData.append("accessToken", localStorage.getItem("accessToken"))
+        ajax.send(formData)
+    }
+
+    function goingToEvent() {
+        const button = event.target
+        button.setAttribute("disabled", "disabled")
+
+        const ajax = new XMLHttpRequest()
+        ajax.open("POST", "/goingToEvent", true)
+
+        ajax.onreadystatechange = function() {
+            if (this.readyState == 4) {
+                if (this.status == 200) {
+                    button.removeAttribute("disabled")
+
+                    const response = JSON.parse(this.responseText)
+                    // console.log(response)
+                    if (response.status == "error") {
+                        swal("Error", response.message, "error")
+                    } else {
+                        let peopleGoing = parseInt(document.getElementById("people-going").innerHTML)
+                        peopleGoing++
+                        document.getElementById("people-going").innerHTML = peopleGoing
+                        // button.remove()
+
+                        document.getElementById("you-are-going").innerHTML = "You are going to this event."
+                    }
+                }
+
+                if (this.status == 500) {
+                    console.log(this.responseText)
+                }
+            }
+        }
+
+        const formData = new FormData()
+        formData.append("accessToken", localStorage.getItem("accessToken"))
+        ajax.send(formData)
+    }
+
+    function getEventDetail() {
+        const ajax = new XMLHttpRequest()
+        ajax.open("POST", "/getEventDetail", true)
+
+        ajax.onreadystatechange = function() {
+            if (this.readyState == 4) {
+                if (this.status == 200) {
+                    const response = JSON.parse(this.responseText)
+                    // console.log(response)
+                    if (response.status == "error") {
+                        swal("Error", response.message, "error")
+                    } else {
+                        const event = response.event
+
+                        let buttonNotGoing = ""
+                        let buttonGoing = `<button type="button" class="btn btn-success" onclick="goingToEvent()">
+                            <i class="fa fa-check"></i>
+                            Going
+                        </button>`
+
+                        // for (let a = 0; a < event.going.length; a++) {
+                        //     if (event.going[a]._id == window.user._id) {
+                                buttonNotGoing += `<button type="button" class="btn btn-danger" onclick="notGoingToEvent()">
+                                    <i class="fa fa-close"></i>
+                                    Not going
+                                </button>`
+                                // buttonGoing = ""
+                        //         break
+                        //     }
+                        // }
+
+                        let youAreGoing = "You are not going to this event."
+                        for (let a = 0; a < event.going.length; a++) {
+                            if (event.going[a]._id == window.user._id) {
+                                youAreGoing = "You are going to this event."
+                                break
+                            }
+                        }
+
+                        const dateParts = event.eventDate.split("T")
+                        var eventDate = new Date(dateParts[0])
+
+                        var date = eventDate.getDate() + ""
+                        date = date.padStart(2, "0") + " " + months[eventDate.getMonth()] + ", " + eventDate.getFullYear() + " " + dateParts[1]
+
+                        let locationHtml = ""
+                        if (event.location && event.location != "") {
+                            locationHtml = `<iframe width="100%" height="500" src="https://maps.google.com/maps?q=` + event.location + `&output=embed" style="margin-top: 10px; margin-bottom: 10px;"></iframe>`
+                        }
+
+                        const html = `<h2>` + event.name + `</h2>
+
+                        <h3>` + date + `</h3>
+
+                        <div class="description">
+                            <p>
+                                ` + event.description + `
+                            </p>
+
+                            <p><span id="people-going">` + event.going.length + `</span> people are going.</p>
+
+                            <p id="you-are-going">` + youAreGoing + `</p>
+
+                            ` + buttonGoing + " " + buttonNotGoing + " " + locationHtml + `
+                        </div>
+
+                        <img class="post-image ` + (event.image == "" ? `hide` : ``) + `" src="` + mainURL + `/` + event.image + `" />
+
+                        <video class="post-video ` + (event.video == "" ? `hide` : ``) + `" style="height: 359px; width: 100%;" controls src="` + mainURL + `/` + event.video + `"></video>`
+
+                        document.getElementById("event-detail").innerHTML = html
+                    }
+                }
+
+                if (this.status == 500) {
+                    console.log(this.responseText)
+                }
+            }
+        }
+
+        const formData = new FormData()
+        formData.append("accessToken", localStorage.getItem("accessToken"))
+        ajax.send(formData)
+    }
+</script>
+
+<%- include ("includes/footer") %>

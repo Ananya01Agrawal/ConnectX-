@@ -1,0 +1,235 @@
+<%- include ("includes/header") %>
+
+	<input type="hidden" id="_id" value="<%= _id %>" />
+	<input type="hidden" id="stripePublicKey" value="<%= stripePublicKey %>" />
+
+	<section>
+	    <div class="gap gray-bg">
+	        <div class="container-fluid">
+	            <div class="row">
+	                <div class="col-md-12">
+	                    <div class="row" id="page-contents">
+
+	                        <div class="col-md-3">
+	                            <%- include ("includes/left-sidebar") %>
+	                        </div>
+
+	                        <div class="col-md-8">
+	                            <div class="central-meta">
+	                                <div class="editing-info">
+
+	                                    <div id="post-detail"></div>
+
+	                                </div>
+	                            </div>
+	                        </div>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+	    </div>
+	</section>
+
+	<!-- include Stripe library -->
+	<script src="https://js.stripe.com/v3/"></script>
+
+	<script>
+		const _id = document.getElementById("_id").value
+
+		// global variables
+	    var stripe = null
+	    var cardElement = null
+	 
+	    const stripePublicKey = document.getElementById("stripePublicKey").value
+		
+		var ajax = new XMLHttpRequest();
+		ajax.open("POST", "/boostPost", true);
+
+		ajax.onreadystatechange = function() {
+			if (this.readyState == 4) {
+
+				if (this.status == 200) {
+					var response = JSON.parse(this.responseText);
+					// console.log(response)
+
+					if (response.status == "error") {
+						swal("Error", response.message, "error");
+					} else if (response.status == "success") {
+						const post = response.post
+
+						let html = ""
+						html += "<p>" + post.caption + "</p>"
+
+						if (post.savedPaths != null) {
+							for (let a = 0; a < post.savedPaths.length; a++) {
+								const parts = post.savedPaths[a].split(".")
+								const extension = parts[parts.length - 1]
+								if (extension == "jpg" || extension == "jpeg" || extension == "png") {
+									html += '<img class="post-image" src="' + mainURL + "/" + post.savedPaths[a] + '">';
+								} else if (extension == "mp4" || extension == "mov" || extension == "mkv") {
+									html += '<video class="post-video" style="height: 359px; width: 100%;" controls src="' + mainURL + "/" + post.savedPaths[a] + '"></video>';
+								} else if (extension == "mp3" || extension == "m4a" || extension == "aac") {
+									html += '<audio class="post-audio" controls src="' + mainURL + "/" + post.savedPaths[a] + '" id="audio-post-' + post._id + '"></audio> <div id="waveform-post-' + post._id + '"></div>'
+								}
+							}
+						}
+
+						if (post.youtube_url && post.youtube_url != "") {
+							let youtube_url = post.youtube_url
+							youtube_url = youtube_url.replace("watch?v=", "embed/")
+
+							html += '<iframe width="560" height="315" src="' + youtube_url + '" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
+						}
+
+						html += `<div class="we-video-info">
+							<ul>
+								<li>
+									<i class="ti-thumb-up"></i>
+									` + post.likers + `
+								</li>
+
+								<li>
+									<i class="ti-thumb-down"></i>
+									` + post.dislikers + `
+								</li>
+
+								<li>
+									<i class="fa fa-comments-o"></i>
+									` + post.comments + `
+								</li>
+
+								<li>
+									<i class="ti-share"></i>
+									` + post.shares + `
+								</li>
+							</ul>
+						<div>`
+
+						var createdAt = new Date(post.createdAt)
+						var date = createdAt.getDate() + ""
+						date = date.padStart(2, "0") + " " + months[createdAt.getMonth()] + ", " + createdAt.getFullYear()
+
+						html += '<p>Published: ' + date + '</p>'
+
+						html += "<h3>$1 per day</h3>"
+
+						html += `<label>
+							Select budget (1 to 1000 USD)
+							<input type="range" id="budget" name="budget" min="1" max="1000" value="1" step="1" oninput="onBudgetChange()" />
+							<span id="lblBudget">$1</span>
+						</label>
+
+						<hr />`
+
+						html += `<div>
+							<p>Where you want to advertise ?</p>
+
+							<label>
+								<input type="checkbox" name="whereToShow" value="newsfeed" />
+								Newsfeed
+							</label>
+
+							<label>
+								<input type="checkbox" name="whereToShow" value="pages" />
+								Pages
+							</label>
+
+							<label>
+								<input type="checkbox" name="whereToShow" value="groups" />
+								Groups
+							</label>
+
+							<label>
+								<input type="checkbox" name="whereToShow" value="chat" />
+								Chat
+							</label>
+						</div>`
+
+						html += `<button type="button" style="background-color: #088dcd; color: white; padding: 5px; border: none;" onclick="showPaymentUI()">Boost post</button>`
+
+						html += `<div id="stripe-card-element" style="margin-top: 50px; margin-bottom: 20px;"></div>
+
+						<button type="button" id="btnPayNow" style="background-color: #088dcd; color: white; padding: 5px; border: none; display: none;" onclick="createPaymentIntent()">Pay now</button>`
+
+						document.getElementById("post-detail").innerHTML = html
+					}
+				}
+
+				if (this.status == 500) {
+					console.log(this.responseText)
+				}
+			}
+		};
+
+		var formData = new FormData();
+		formData.append("accessToken", localStorage.getItem("accessToken"));
+		formData.append("_id", _id)
+		ajax.send(formData)
+
+		function createPaymentIntent() {
+			const amount = document.getElementById("budget").value
+
+			document.getElementById("btnPayNow").innerHTML = "Loading..."
+			document.getElementById("btnPayNow").setAttribute("disabled", "disabled")
+
+			var ajax = new XMLHttpRequest()
+			ajax.open("POST", "/createStripeIntent", true);
+
+			ajax.onreadystatechange = function() {
+				if (this.readyState == 4) {
+
+					if (this.status == 200) {
+						var response = JSON.parse(this.responseText);
+						// console.log(response)
+
+						if (response.status == "error") {
+							swal("Error", response.message, "error")
+							document.getElementById("btnPayNow").innerHTML = "Pay now"
+							document.getElementById("btnPayNow").removeAttribute("disabled")
+						} else if (response.status == "success") {
+							//
+						}
+					}
+
+					if (this.status == 500) {
+						console.log(this.responseText)
+					}
+				}
+			};
+
+			var formData = new FormData();
+			formData.append("accessToken", localStorage.getItem("accessToken"));
+			formData.append("amount", amount)
+			ajax.send(formData)
+		}
+
+		function showPaymentUI() {
+			document.getElementById("btnPayNow").style.display = "none"
+
+			const whereToShowNodes = document.querySelectorAll("input[name=whereToShow]:checked")
+			if (whereToShowNodes.length == 0) {
+				swal("No place selected", "Please select any place to put ad.", "error")
+				return
+			}
+
+			if (confirm("Are you sure you want to boost this post ?")) {
+				try {
+					stripe = Stripe(stripePublicKey)
+			        var elements = stripe.elements()
+			        cardElement = elements.create('card')
+			        cardElement.mount('#stripe-card-element')
+			    } catch (exp) {
+			    	swal("Error", "Please enter your Stripe publishable key in server.js", "error")
+			    }
+
+		        document.getElementById("btnPayNow").style.display = ""
+			}
+		}
+
+		function onBudgetChange() {
+			const budget = document.getElementById("budget").value
+			document.getElementById("lblBudget").innerHTML = "$" + budget
+		}
+	</script>
+
+<%- include ("includes/footer") %>

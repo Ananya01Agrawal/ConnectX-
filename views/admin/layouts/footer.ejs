@@ -1,0 +1,146 @@
+            </div> <!-- content -->
+        </div> <!-- body -->
+    </div> <!-- wrapper -->
+
+    <script src="/public/admin/assets/vendor/jquery/jquery.min.js"></script>
+    <script src="/public/admin/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="/public/admin/assets/vendor/chartsjs/Chart.min.js"></script>
+    <script src="/public/admin/assets/js/dashboard-charts.js"></script>
+    <script src="/public/swal/sweetalert.min.js"></script>
+    
+    <script src="/public/wysiwyg/js/froala_editor.min.js"></script>
+    <script src="/public/wysiwyg/js/plugins/image.min.js"></script>
+    <script src="/public/wysiwyg/js/plugins/video.min.js"></script>
+
+    <script src="/public/admin/assets/js/script.js"></script>
+
+    <script>
+        window.admin = null;
+
+        function getAdmin() {
+
+            if (localStorage.getItem("adminAccessToken")) {
+
+                var pathname = window.location.pathname;
+                if (pathname == "/admin/posts") {
+                    document.getElementById("link-posts").className = "active";
+                }
+                if (pathname == "/admin/users") {
+                    document.getElementById("link-users").className = "active";
+                }
+                if (pathname == "/admin") {
+                    document.getElementById("link-dashboard").className = "active";
+                }
+                if (pathname == "/admin/tickets") {
+                    document.getElementById("link-tickets").className = "active";
+                }
+                if (pathname == "/admin/ads") {
+                    document.getElementById("link-ads").className = "active";
+                }
+
+                var ajax = new XMLHttpRequest();
+                ajax.open("POST", "/admin/getAdmin", true);
+
+                ajax.onreadystatechange = function() {
+                    if (this.readyState == 4) {
+
+                        if (this.status == 200) {
+                            var response = JSON.parse(this.responseText);
+
+                            if (response.status == "success") {
+                                window.admin = response.data;
+
+                                document.getElementById("admin-name").innerHTML = window.admin.email;
+
+                                /* render my public profile link */
+                                // if (document.getElementById("link-my-public-profile") != null) {
+                                //     document.getElementById("link-my-public-profile").setAttribute("href", mainURL + "/user/" + window.user.username);
+                                // }
+
+                                /*var friends = window.user.friends;
+                                var unReadInbox = 0;
+
+                                for (var a = 0; a < friends.length; a++) {
+                                    for (var b = 0; b < friends[a].inbox.length; b++) {
+                                        if (!friends[a].inbox[b].is_read) {
+                                            unReadInbox++;
+                                        }
+                                    }
+                                }
+                                if (unReadInbox > 0) {
+                                    document.getElementById("inbox-badge").innerHTML = unReadInbox;
+                                }*/
+
+                                if (typeof isDashboard !== "undefined" && isDashboard) {
+                                    getDashboardData();
+                                }
+
+                                if (typeof isUsersPage !== "undefined" && isUsersPage) {
+                                    getUsers();
+                                }
+
+                                if (typeof isPostsPage !== "undefined" && isPostsPage) {
+                                    getPosts();
+                                }
+
+                                if (typeof isTicketsPage !== "undefined" && isTicketsPage) {
+                                    getTickets();
+                                }
+
+                                if (typeof isEditTicketPage !== "undefined" && isEditTicketPage) {
+                                    getTicketData();
+                                }
+
+                                if (typeof isOnAdsPage !== "undefined" && isOnAdsPage) {
+                                    fetchAds()
+                                }
+
+                                /*if (typeof isNotifications !== "undefined" && isNotifications) {
+                                    showNotifications();
+                                    markNotificationsAsRead();
+                                } else {
+                                    var notificationsCount = 0;
+                                    for (var a = 0; a < window.user.notifications.length; a++) {
+                                        if (!window.user.notifications[a].isRead) {
+                                            notificationsCount++;
+                                        }
+                                    }
+                                    if (notificationsCount > 0) {
+                                        if (document.getElementById("notifications-badge") != null) {
+                                            document.getElementById("notifications-badge").innerHTML = "(" + notificationsCount + ")";
+                                        }
+                                    }
+                                }*/
+
+                            } else {
+                                localStorage.removeItem("adminAccessToken");
+                                window.location.href = "/admin/login";
+                            }
+                        }
+
+                        if (this.status == 500) {
+                            console.log(this.responseText);
+                        }
+                    }
+                };
+
+                var formData = new FormData();
+                formData.append("accessToken", localStorage.getItem("adminAccessToken"));
+                ajax.send(formData);
+            } else {
+                window.location.href = "/admin/login";
+            }
+        }
+
+        function doLogout() {
+            localStorage.removeItem("adminAccessToken");
+            window.location.href = "/admin/login";
+            return true;
+        }
+
+        window.onload = function () {
+            getAdmin();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<%- include ("layouts/header") %>
+
+<div class="content">
+    <div class="container">
+        <div class="page-title">
+            <h3>Ads</h3>
+        </div>
+
+        <div class="box box-primary">
+            <div class="box-body">
+                <table width="100%" class="table table-bordered" id="dataTables-ads">
+                    <thead>
+                        <tr>
+                            <th>Post</th>
+                            <th>Budget</th>
+                            <th>Where to show ?</th>
+                            <th>Status</th>
+                            <th>Payment ID</th>
+                            <th>Started at</th>
+                            <th>End at</th>
+                        </tr>
+                    </thead>
+
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const isOnAdsPage = true
+
+    function fetchAds() {
+        var ajax = new XMLHttpRequest();
+        ajax.open("POST", "/admin/fetchAds", true);
+
+        ajax.onreadystatechange = function() {
+            if (this.readyState == 4) {
+
+                if (this.status == 200) {
+                    var response = JSON.parse(this.responseText);
+                    console.log(response)
+
+                    if (response.status == "error") {
+                        swal("Error", response.message, "error");
+                    } else if (response.status == "success") {
+                        let html = ""
+
+                        for (let a = 0; a < response.ads.length; a++) {
+                            const ad = response.ads[a]
+
+                            let savedPathHtml = ""
+                            if (ad.savedPaths != null) {
+                                for (let a = 0; a < ad.savedPaths.length; a++) {
+                                    const parts = ad.savedPaths[a].split(".")
+                                    const extension = parts[parts.length - 1]
+                                    if (extension == "jpg" || extension == "jpeg" || extension == "png") {
+                                        savedPathHtml += '<img class="post-image" src="' + mainURL + "/" + ad.savedPaths[a] + '">';
+                                    } else if (extension == "mp4" || extension == "mov" || extension == "mkv") {
+                                        savedPathHtml += '<video class="post-video" style="height: 359px; width: 100%;" controls src="' + mainURL + "/" + ad.savedPaths[a] + '"></video>';
+                                    } else if (extension == "mp3" || extension == "m4a" || extension == "aac") {
+                                        savedPathHtml += '<audio class="post-audio" controls src="' + mainURL + "/" + ad.savedPaths[a] + '" id="audio-post-' + ad._id + '"></audio> <div id="waveform-post-' + ad._id + '"></div>'
+                                    }
+                                }
+                            }
+
+                            html += `<tr>
+                                <td><a href='` + mainURL + `/post/` + ad.post._id + `' style='color: blue; text-decoration: underline;'>` + ad.post.caption + savedPathHtml + `</a></td>
+                                <td>$` + ad.budget + `</td>
+                                <td>` + ad.whereToShow + `</td>
+                                <td>` + ad.status + `</td>
+                                <td><a href='https://dashboard.stripe.com' target='_blank' style='color: blue; text-decoration: underline;'>Stripe</a></td>
+                                <td>` + new Date(ad.createdAt) + `</td>
+                                <td>` + new Date(ad.endAt) + `</td>
+                            </tr>`
+                        }
+
+                        document.querySelector("#dataTables-ads tbody").innerHTML = html
+                    }
+                }
+
+                if (this.status == 500) {
+                    console.log(this.responseText)
+                }
+            }
+        };
+
+        var formData = new FormData()
+        formData.append("accessToken", localStorage.getItem("adminAccessToken"))
+        ajax.send(formData)
+    }
+</script>
+
+<%- include ("layouts/footer") %>

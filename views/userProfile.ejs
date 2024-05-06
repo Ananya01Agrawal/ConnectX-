@@ -1,0 +1,142 @@
+<%- include ("includes/header") %>
+
+<div id="profileApp" style="display: contents;" v-if="u != null">
+	<section>
+		<div class="feature-photo">
+
+			<figure>
+				<img class="cover-photo" id="cover-photo" style="width: 100%; height: 700px; object-fit: cover;" v-bind:src="mainURL + '/' + u.coverPhoto" onerror="this.src = '/public/img/default_cover.jpg';">
+			</figure>
+
+			<div class="container-fluid">
+				<div class="row merged">
+					<div class="col-md-2">
+						<div class="user-avatar">
+							<figure>
+								<img class="profile-image" id="profile-image" style="width: 100%; height: 150px; object-fit: cover;" v-bind:src="mainURL + '/' + u.profileImage" onerror="this.src = '/public/img/default_profile.jpg';">
+							</figure>
+						</div>
+					</div>
+					<div class="col-md-10">
+						<div class="timeline-info">
+							<ul>
+								<li class="admin-name">
+									<h5 class="user-name" v-text="u.name" style="padding-top: 20px; padding-bottom: 20px;"></h5>
+
+	                                <span v-if="!u.profileLocked" v-text="u.friends + ' friends'"></span>
+								</li>
+							</ul>
+						</div>
+
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section>
+		<div class="gap gray-bg">
+			<div class="container-fluid">
+				<div class="row">
+					<div class="col-md-12">
+						<div class="row" id="page-contents">
+
+							<div class="col-md-3">
+								<div class="central-meta">
+									<div class="editing-info">
+	                                    <p><b>Full Name:</b> <span v-text="u.name"></span></p>
+	                                    <template v-if="!u.profileLocked">
+		                                    <p><b>Email:</b> <span v-text="u.email"></span></p>
+		                                    <p><b>Date of Birth:</b> <span v-text="u.dob == '' ? 'N/A' : u.dob"></span></p>
+		                                    <p><b>City:</b> <span v-text="u.city == '' ? 'N/A' : u.city"></span></p>
+		                                    <p><b>Country:</b> <span v-text="u.country == '' ? 'N/A' : u.country"></span></p>
+		                                    <p><b>About:</b> <span v-text="u.aboutMe == '' ? 'N/A' : u.aboutMe"></span></p>
+	                                    </template>
+									</div>
+								</div>
+							</div>
+
+	                        <div class="col-md-6">
+	                            <div class="loadMore" id="newsfeed"></div>
+
+	                            <div v-if="u.profileLocked" class="central-meta item">
+	                            	<p style="font-size: 26px;"><i class="fa fa-lock"></i> This profile is locked.</p>
+	                            </div>
+	                        </div>
+
+						</div>
+
+					</div>
+				</div>
+			</div>
+		</div>
+
+	</section>
+</div>
+
+<input type="hidden" id="username" value="<%= username %>">
+
+<script>
+
+    var isUserProfile = true;
+
+    function initUserProfile() {
+    	new Vue({
+    		el: "#profileApp",
+
+    		data() {
+    			return {
+    				u: null
+    			}
+    		},
+
+    		methods: {
+    			getUserFeed() {
+    				var ajax = new XMLHttpRequest();
+			        ajax.open("POST", "/getUserFeed", true);
+
+			        ajax.onreadystatechange = function() {
+			            if (this.readyState == 4 && this.status == 200) {
+			                var response = JSON.parse(this.responseText);
+			                renderFeed(response);
+			            }
+			        };
+
+			        var formData = new FormData();
+			        formData.append("username", document.getElementById("username").value);
+			        formData.append("accessToken", localStorage.getItem("accessToken"))
+			        ajax.send(formData);
+    			},
+
+    			fetchUser() {
+    				const self = this
+	    			const ajax = new XMLHttpRequest();
+			        ajax.open("POST", "/fetchUser", true);
+
+			        ajax.onreadystatechange = function() {
+			            if (this.readyState == 4 && this.status == 200) {
+			                var response = JSON.parse(this.responseText);
+			                if (response.status == "success") {
+			                	self.u = response.user
+			                	self.getUserFeed()
+			                } else {
+			                	swal("Error", response.message, "error")
+			                }
+			            }
+			        };
+
+			        const formData = new FormData()
+			        formData.append("accessToken", localStorage.getItem("accessToken"))
+			        formData.append("username", document.getElementById("username").value)
+			        ajax.send(formData)
+    			}
+    		},
+
+    		mounted() {
+    			this.fetchUser()
+    		}
+    	})
+    }
+</script>
+
+<%- include ("includes/footer") %>

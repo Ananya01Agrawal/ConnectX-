@@ -1,0 +1,170 @@
+<%- include ("includes/header") %>
+
+	<section>
+	    <div class="gap gray-bg">
+	        <div class="container-fluid">
+	            <div class="row">
+	                <div class="col-md-12">
+	                    <div class="row" id="page-contents">
+
+	                        <div class="col-md-3">
+	                            <%- include ("includes/left-sidebar") %>
+	                        </div>
+
+	                        <div class="col-md-8">
+	                            <div class="central-meta">
+	                                <div class="editing-info">
+
+	                                	<h2>Watch</h2>
+
+	                                	<div class="loadMore" id="newsfeed"></div>
+
+	                                	<button class="btn-view btn-load-more" onclick="loadMore.fetch()">Load More</button>
+
+	                                </div>
+	                            </div>
+	                        </div>
+	                    </div>
+	                </div>
+	            </div>
+	        </div>
+	    </div>
+	</section>
+
+	<script>
+		const isOnWatchPage = true
+
+		function videoPlayed(src, postId) {
+			const target = event.target
+
+			const ajax = new XMLHttpRequest()
+			ajax.open("POST", "/watchVideoPlayed", true)
+
+			ajax.onreadystatechange = function() {
+				if (this.readyState == 4) {
+
+					if (this.status == 200) {
+						const response = JSON.parse(this.responseText)
+						// console.log(response)
+
+						if (response.status == "error") {
+							// swal("Error", response.message, "error")
+						} else if (response.status == "success") {
+							const p = target.nextElementSibling
+							if (p != null) {
+								const span = p.querySelector("span")
+
+								if (span != null) {
+									span.innerHTML = response.updatedViews
+								}
+							}
+						}
+					}
+
+					if (this.status == 500) {
+						console.log(this.responseText)
+					}
+				}
+			}
+
+			const formData = new FormData()
+			formData.append("accessToken", localStorage.getItem("accessToken"))
+			formData.append("src", src)
+			formData.append("postId", postId)
+			ajax.send(formData)
+		}
+
+		function fetchWatch() {
+			const ajax = new XMLHttpRequest()
+			ajax.open("POST", "/fetchWatch", true)
+
+			ajax.onreadystatechange = function() {
+				if (this.readyState == 4) {
+
+					if (this.status == 200) {
+						const response = JSON.parse(this.responseText)
+						// console.log(response)
+
+						if (response.status == "error") {
+							swal("Error", response.message, "error")
+						} else if (response.status == "success") {
+							let html = ""
+
+							for (let a = 0; a < response.data.length; a++) {
+								const data = response.data[a]
+
+								html += `<div class="central-meta item" id="post-` + data._id + `">
+									<div class="user-post">
+										<div class="friend-info">
+											<figure>
+												<img src="` + mainURL + `/` + (data.type == 'group_post' ? data.uploader.profileImage : data.user.profileImage) + `" style="width: 45px; height: 45px; object-fit: cover;" onerror="this.src = \'/public/img/default_profile.jpg\';">
+											</figure>
+
+											<div class="friend-name">
+											<ins>`
+												if (data.type == "post") {
+													html += `<a href="/user/` + data.user.username + `">` + data.user.name + ` </a>`
+												} else if (data.type == "group_post") {
+													html += `<a href="/group/` + data.user._id + `">` + data.user.name + `</a>`
+												} else if (data.type == "page_post") {
+													html += `<a href="/page/` + data.user._id + `">` + data.user.name + `</a>`
+												} else {
+													html += data.user.name;
+												}
+										html += `</ins>`
+
+										var createdAt = new Date(data.createdAt);
+										var date = createdAt.getDate() + "";
+										date = date.padStart(2, "0") + " " + months[createdAt.getMonth()] + ", " + createdAt.getFullYear();
+
+										html += `<span>Published: ` + date + `</span>`
+
+										if (data.originalPost != null) {
+											html += `<span>Original <a href='` + mainURL + `/post/` + data.originalPost._id + `'>post</a> by ` + data.originalPost.user.name + `</span>`
+										}
+
+									html += `</div>
+
+											<div class="post-meta">`
+
+												for (let b = 0; b < data.savedPaths.length; b++) {
+													const parts = data.savedPaths[b].split(".")
+													const extension = parts[parts.length - 1]
+													if (extension == "mp4" || extension == "mov" || extension == "mkv") {
+														html += `<video class="post-video" onplay="videoPlayed('` + data.savedPaths[b] + `', '` + data._id + `')" style="width: 100%;" controls src="` + mainURL + `/` + data.savedPaths[b] + `"></video>`
+
+														const videos = data.videos || []
+														for (let c = 0; c < videos.length; c++) {
+															if (data.savedPaths[b] == videos[c].src) {
+																html += "<p class='text-right'><i class='fa fa-eye'></i> <span>" + videos[c].viewers.length + "</span></p>"
+																break
+															}
+														}
+													}
+												}
+
+										html += createLikesSection(data)
+
+									html += `</div>
+										</div>
+									</div>
+								</div>`
+							}
+
+							document.getElementById("newsfeed").innerHTML = html
+						}
+					}
+
+					if (this.status == 500) {
+						console.log(this.responseText)
+					}
+				}
+			}
+
+			const formData = new FormData()
+			formData.append("accessToken", localStorage.getItem("accessToken"))
+			ajax.send(formData)
+		}
+	</script>
+
+<%- include ("includes/footer") %>

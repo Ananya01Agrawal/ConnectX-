@@ -1,0 +1,164 @@
+<%- include ("includes/header") %>
+
+<section id="addStoryApp">
+
+	<form v-on:submit.prevent="addStory" id="form-add-story" enctype="multipart/form-data">
+	</form>
+
+	<div class="gap gray-bg">
+		<div class="container">
+			<div class="row">
+				<div class="col-md-12">
+					<div class="central-meta">
+						<div class="editing-info">
+							<h5 class="f-title">
+								<i class="ti-info-alt"></i>
+								Add Story
+							</h5>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="container" v-for="(story, index) in stories">
+			<div class="row">
+				<div class="col-md-12">
+					<div class="central-meta">
+						<div class="editing-info">
+							<div class="row">
+								<div class="offset-md-6 col-md-3">
+									<h3 style="background: #0a8dcd;
+									    color: white;
+									    display: initial;
+									    padding: 10px 20px;
+									    border-radius: 50%;"
+									    v-text="(index + 1)"></h3>
+								</div>
+
+								<div class="col-md-3">
+									<button type="button" class="btn btn-danger btn-sm pull-right" v-on:click="removeStory" v-bind:data-index="index">x</button>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label>Ådd Attachment</label>
+								<input type="file" v-model="story.attachment" accept="image/*, video/*" form="form-add-story" v-bind:name="'attachment' + index" />
+								<i class="mtrl-select"></i>
+
+								<br><br>
+							</div>
+
+							<div class="form-group">
+								<textarea rows="4" v-model="story.caption" form="form-add-story" v-bind:name="'caption' + index"></textarea>
+								<label class="control-label">Caption</label>
+								<i class="mtrl-select"></i>
+
+								<br><br>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="container">
+			<div class="row">
+				<div class="col-md-12">
+					<div class="central-meta">
+						<div class="editing-info">
+
+							<button type="button" class="btn btn-primary" style="position: relative; left: 50%; transform: translateX(-50%);" v-on:click="addMore">+ Add</button>
+
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="container">
+			<div class="row">
+				<div class="col-md-12">
+					<div class="central-meta">
+						<div class="editing-info">
+
+							<button type="submit" class="mtr-btn" name="submit" form="form-add-story">
+								<span>Add Story</span>
+							</button>
+
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+<script>
+	var isAddStoryPage = true;
+	let addStoryApp = null;
+
+	function onInitAddStoryPage() {
+		addStoryApp = new Vue({
+			el: "#addStoryApp",
+			data: {
+				stories: [{
+					attchment: "",
+					caption: ""
+				}]
+			},
+			methods: {
+				addStory: function () {
+					let form = event.target;
+					form.submit.setAttribute("disabled", "disabled");
+
+					var ajax = new XMLHttpRequest();
+					ajax.open("POST", "/addStory", true);
+
+					ajax.onreadystatechange = function() {
+						if (this.readyState == 4) {
+							if (this.status == 200) {
+								form.submit.removeAttribute("disabled");
+
+								var response = JSON.parse(this.responseText);
+								// console.log(response);
+								if (response.status == "error") {
+									swal("Error", response.message, "error");
+								} else if (response.status == "success") {
+									swal("Success", response.message, "success");
+
+									setTimeout(function () {
+										window.location.href = mainURL;
+									}, 1000);
+								}
+							}
+
+							if (this.status == 500) {
+								console.log(this.responseText);
+							}
+						}
+					};
+
+					var formData = new FormData(form);
+					formData.append("accessToken", localStorage.getItem("accessToken"));
+					formData.append("length", this.stories.length);
+					ajax.send(formData);
+				},
+
+				removeStory: function () {
+					const index = event.target.getAttribute("data-index");
+					this.stories.splice(index, 1);
+				},
+
+				addMore: function () {
+					this.stories.push({
+						attchment: "",
+						caption: ""
+					});
+				}
+			}
+		});
+	}
+</script>
+
+<%- include ("includes/footer") %>
