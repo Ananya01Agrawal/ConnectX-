@@ -1,4 +1,4 @@
-# Social network in NodeJS and MongoDB
+# ConnectX
 
 A social networking service is an online platform that people use to build social networks or social relationships with other people who share similar personal or career interests, activities, backgrounds, or real-life connections. Social networking services vary in format and the number of features.
 
@@ -33,7 +33,8 @@ This project is developed in Node JS and Mongo DB. It has all the functionality 
 
 ## Features list
 
-![Social network in NodeJS and MongoDB](screenshots/screenshot.png)
+![image](https://github.com/Ananya01Agrawal/ConnectX-/assets/99130567/726101f5-52ab-4325-b4c2-8c945248456c)
+
 
 
 1. Login and registration
